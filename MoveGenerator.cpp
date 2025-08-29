@@ -33,7 +33,6 @@ std::vector<Move> MoveGenerator::generate_moves(const Board& board,bool captures
         uint64_t remedy_mask=(1ULL<< check_info.attacker_square);
         if (checker==PieceType::QUEEN || checker==PieceType::ROOK|| checker==PieceType::BISHOP) remedy_mask|=LINE_BETWEEN[king_square][check_info.attacker_square];
         
-        
         std::vector<Move> queen_moves = generate_queen_moves(board, own_color, pinned_info, remedy_mask,captures_ony);
         legal_moves.insert(legal_moves.end(), queen_moves.begin(), queen_moves.end());
         
@@ -47,7 +46,7 @@ std::vector<Move> MoveGenerator::generate_moves(const Board& board,bool captures
         legal_moves.insert(legal_moves.end(), knight_moves.begin(), knight_moves.end());
         
         if (board.get_en_passant_rights() !=-1 && checker == PieceType::PAWN) remedy_mask|=1ULL<<board.get_en_passant_rights();
-        std::vector<Move> pawn_moves = generate_pawn_moves(board, own_color, pinned_info, remedy_mask,captures_ony);
+        std::vector<Move> pawn_moves = generate_pawn_moves(board, own_color,king_square, pinned_info, remedy_mask,captures_ony);
         legal_moves.insert(legal_moves.end(), pawn_moves.begin(), pawn_moves.end());
     }else
     {   
@@ -66,7 +65,7 @@ std::vector<Move> MoveGenerator::generate_moves(const Board& board,bool captures
         std::vector<Move> knight_moves = generate_knight_moves(board, own_color, pinned_info,BOARD_ALL_SET,captures_ony);
         legal_moves.insert(legal_moves.end(), knight_moves.begin(), knight_moves.end());
 
-        std::vector<Move> pawn_moves = generate_pawn_moves(board, own_color, pinned_info,BOARD_ALL_SET,captures_ony);
+        std::vector<Move> pawn_moves = generate_pawn_moves(board, own_color,king_square, pinned_info,BOARD_ALL_SET,captures_ony);
         legal_moves.insert(legal_moves.end(), pawn_moves.begin(), pawn_moves.end());
     }
     return legal_moves;
@@ -195,7 +194,7 @@ std::vector<Move> MoveGenerator::generate_knight_moves(const Board& board, Color
     return moves;
 }
 
-std::vector<Move> MoveGenerator::generate_pawn_moves(const Board& board, Color own_color, const std::array<uint64_t, 64>& pinned_info, const uint64_t& remedy_mask, bool captures_only) {
+std::vector<Move> MoveGenerator::generate_pawn_moves(const Board& board, Color own_color,const int king_square, const std::array<uint64_t, 64>& pinned_info, const uint64_t& remedy_mask, bool captures_only) {
     std::vector<Move> moves;
     
     if (!captures_only)
@@ -208,7 +207,7 @@ std::vector<Move> MoveGenerator::generate_pawn_moves(const Board& board, Color o
         );
     }
     
-    std::vector<Move> capture_moves=generate_pawn_captures(board,own_color,pinned_info,remedy_mask);
+    std::vector<Move> capture_moves=generate_pawn_captures(board,own_color,king_square,pinned_info,remedy_mask);
     moves.insert(
         moves.end(),
         capture_moves.begin(),
@@ -273,7 +272,7 @@ std::vector<Move> MoveGenerator::generate_pawn_pushes(const Board& board,Color o
         int push_step=(own_color==Color::WHITE) ? 8:-8;
         int start_rank=(own_color==Color::WHITE) ? 1:6;
         int promotion_rank=(own_color==Color::WHITE) ? 6:1;
-
+        
         while (own_pawns)
         {
             int from_square = get_lsb(own_pawns);
@@ -322,13 +321,14 @@ std::vector<Move> MoveGenerator::generate_pawn_pushes(const Board& board,Color o
         }
         return moves;
 }
-std::vector<Move> MoveGenerator::generate_pawn_captures(const Board& board, Color own_color,const std::array<uint64_t,64>& pinned_info,const uint64_t& remedy_mask){
+std::vector<Move> MoveGenerator::generate_pawn_captures(const Board& board, Color own_color,const int king_square,const std::array<uint64_t,64>& pinned_info,const uint64_t& remedy_mask){
         std::vector<Move> moves;
 
         uint64_t own_pawns=board.get_pieces(own_color,PieceType::PAWN);
         Color opponent_color =(own_color==Color::WHITE) ? Color::BLACK:Color::WHITE;
         uint64_t enemy_pieces=board.get_color_pieces(opponent_color);
-
+        uint64_t new_remedy=remedy_mask;
+        if (board.get_en_passant_rights()!=-1) new_remedy |=(1ULL<<board.get_en_passant_rights());
         while (own_pawns)
         {
             int from_square=get_lsb(own_pawns);
@@ -363,13 +363,31 @@ std::vector<Move> MoveGenerator::generate_pawn_captures(const Board& board, Colo
             int ep_square=board.get_en_passant_rights();
             if (ep_square!=-1)
             {
-                if (attack_bb & (1ULL<<ep_square))
-                {
-                    if (pinned_info[from_square] & (1ULL<<ep_square) & remedy_mask)
+                if (attack_bb & (1ULL<<ep_square) & pinned_info[from_square] & remedy_mask)
+                {       
+                    if (king_square /8 != from_square /8)
                     {
                         moves.emplace_back(from_square,ep_square,PieceType::PAWN,own_color,PieceType::PAWN,board.get_castle_rights(),board.get_en_passant_rights(),PieceType::NONE,false,true);
+                    }else
+                    {   
+                        int dir_index= (king_square>from_square) ? 7:3;
+                        int capture_square= (own_color==Color::WHITE) ? ep_square-8:ep_square+8;
+                        uint64_t two_pawns_mask=(1ULL<<from_square) | (1ULL<<capture_square);
+                        uint64_t opponent_rook_queen=board.get_pieces(opponent_color,PieceType::ROOK) | board.get_pieces(opponent_color,PieceType::QUEEN);
+                        uint64_t ray=RAY_MASK[dir_index][king_square]^two_pawns_mask;
+                        ray&= board.get_all_pieces();
+                        int next_piece_square= (dir_index==7) ? get_msb(ray) : get_lsb(ray);
+                        if ((opponent_rook_queen & (1ULL<<next_piece_square)) == 0)
+                        {
+                            moves.emplace_back(from_square,ep_square,PieceType::PAWN,own_color,PieceType::PAWN,board.get_castle_rights(),board.get_en_passant_rights(),PieceType::NONE,false,true);
+                        }else{
+                            own_pawns&=own_pawns-1;
+                            continue;
+                        }
+                        
                     }
                     
+
                 }
                 
             }

@@ -13,10 +13,10 @@ private:
     static std::vector<Move> generate_rook_moves(const Board& board, Color own_color,const std::array<uint64_t,64>& pinned_info,const uint64_t& remedy_mask=BOARD_ALL_SET, bool captures_only=false);
     static std::vector<Move> generate_bishop_moves(const Board& board, Color own_color,const std::array<uint64_t,64>& pinned_info,const uint64_t& remedy_mask=BOARD_ALL_SET, bool captures_only=false);
     static std::vector<Move> generate_knight_moves(const Board& board, Color own_color,const std::array<uint64_t,64>& pinned_info,const uint64_t& remedy_mask=BOARD_ALL_SET, bool captures_only=false);
-    static std::vector<Move> generate_pawn_moves(const Board& board, Color own_color,const std::array<uint64_t,64>& pinned_info,const uint64_t& remedy_mask=BOARD_ALL_SET, bool captures_only=false);
+    static std::vector<Move> generate_pawn_moves(const Board& board, Color own_color,const int king_square,const std::array<uint64_t,64>& pinned_info,const uint64_t& remedy_mask=BOARD_ALL_SET, bool captures_only=false);
     static std::vector<Move> generate_sliding_moves(PieceType piece,const Board& board, Color own_color, const std::array<uint64_t,64>& pinned_info, const uint64_t& remedy_mask=BOARD_ALL_SET, bool captures_only=false);
     static std::vector<Move> generate_pawn_pushes(const Board& board,Color own_color,const std::array<uint64_t,64>&pinned_info,const uint64_t& remedy_mask=BOARD_ALL_SET);
-    static std::vector<Move> generate_pawn_captures(const Board& board, Color own_color,const std::array<uint64_t,64>& pinned_info,const uint64_t& remedy_mask);
+    static std::vector<Move> generate_pawn_captures(const Board& board, Color own_color,const int king_square,const std::array<uint64_t,64>& pinned_info,const uint64_t& remedy_mask);
 
 public:
     MoveGenerator();

@@ -24,6 +24,10 @@ class Engine {
         Move search(const Board& board, int depth,int time_limit=100);
         void perft_test(Board& board, int depth);
         int checks_count;
+        int ep_count;
+        int capture_count;
+        int checkmate_count;
+        std::vector<Board> special_boards;
 
     private:
         bool stop_search;

@@ -477,19 +477,19 @@ CheckInfo Board::count_attacker_on_square(const int square, const Color attacker
     info.count+=number;
     if (number>0 && need_square) info.attacker_square=get_lsb(pawns & attack_squares);
     if (info.count>=bound) return info;
-
     uint64_t knights=pieces[to_int(attacker_color)][to_int(PieceType::KNIGHT)];
     attack_squares=KNIGHT_ATTACKS[square];
-    number+=popcount(knights & attack_squares);
+    number=popcount(knights & attack_squares);
     if (number>0 && need_square) info.attacker_square=get_lsb(knights & attack_squares);
     info.count+=number;
+    
     if (info.count>=bound) return info;
 
     //Check for Bishop or Queen attack
     for (int dir_index = 0; dir_index < 8; dir_index+=2)
     {
         uint64_t possible_atackers=pieces[to_int(attacker_color)][to_int(PieceType::QUEEN)]| pieces[to_int(attacker_color)][to_int(PieceType::BISHOP)];
-        int blocker_sq=get_first_blocker_sq(RAY_MASK[dir_index][square],all_pieces,dir_index<4);
+        int blocker_sq=get_first_blocker_sq(RAY_MASK[dir_index][square],all_pieces^(pieces[other_color][to_int(PieceType::KING)]),dir_index<4);
         if (blocker_sq==-1) continue;
         if (possible_atackers & (1ULL << blocker_sq)){
             info.count+=1;
@@ -499,9 +499,10 @@ CheckInfo Board::count_attacker_on_square(const int square, const Color attacker
     }
     //Check for ROOk or Queen attack
     for (int dir_index = 1; dir_index < 8; dir_index+=2)
-    {
+    {   
+    
         uint64_t possible_atackers=pieces[to_int(attacker_color)][to_int(PieceType::QUEEN)]| pieces[to_int(attacker_color)][to_int(PieceType::ROOK)];
-        int blocker_sq=get_first_blocker_sq(RAY_MASK[dir_index][square],all_pieces,dir_index<4);
+        int blocker_sq=get_first_blocker_sq(RAY_MASK[dir_index][square],all_pieces^(pieces[other_color][to_int(PieceType::KING)]),dir_index<4);
         if (blocker_sq==-1) continue;
         if (possible_atackers & (1ULL << blocker_sq)){
             info.count+=1;

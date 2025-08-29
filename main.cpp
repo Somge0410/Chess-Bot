@@ -11,25 +11,33 @@
 #include "engine.h"
 int main(){
     Zobrist::initialize_keys();
-    Board board("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1 ");
     Engine engine;
-    // std::vector<Move> from_start_pos=MoveGenerator::generate_moves(board);
-    // board.display();
-    // board.make_move(from_start_pos[11]);
-    // board.display();
-    // std::cout <<"Here new"<< std::endl;
-    // std::vector<Move> from_new_pos=MoveGenerator::generate_moves(board);
-    // for(Move move : from_new_pos){
-    //     board.make_move(move);
-    //     board.display();
-    //     board.undo_move(move);
-    // }
-    for (size_t i = 0; i < 6; ++i)
+    Board board;
+    
+    std::vector<Move> from_new_pos=MoveGenerator::generate_moves(board);
+    for(Move move : from_new_pos){
+        board.make_move(move);
+        board.display();
+        board.undo_move(move);
+    }
+    for (size_t i = 0; i < 7; ++i)
     {
         
         engine.perft_test(board,i);
     }
-    // std::cout << engine.checks_count << std::endl;
+    std::cout << engine.checks_count << std::endl;
+    std::cout << engine.checkmate_count << std::endl;
+    std::cout << engine.ep_count << std::endl;
+    std::cout << engine.capture_count << std::endl;
+    return 0;
+    //Board special_board=engine.special_boards[9];
+    // special_board.display();
+    // std::vector<Move> legal_moves = MoveGenerator::generate_moves(special_board);
+    // for(Move move : legal_moves){
+    //     special_board.make_move(move);
+    //     special_board.display();
+    //     special_board.undo_move(move);
+    // }
     // for (size_t i = 0; i < 12; ++i)
     // {
     //     Board check_board=engine.check_positions[i];

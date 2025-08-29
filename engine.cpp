@@ -343,7 +343,7 @@ uint64_t Engine::perft_driver(Board& board, int depth){
     if (depth==0){
         if (board.in_check() && MoveGenerator::generate_moves(board).empty())
         {
-            checks_count+=1;
+            checkmate_count+=1;
         }
         return 1;
         
@@ -354,8 +354,13 @@ uint64_t Engine::perft_driver(Board& board, int depth){
     for (const Move& move : legal_moves)
     {   
         
-        
+        if(move.is_en_passant) ep_count+=1;
+        if(move.piece_captured!=PieceType::NONE) capture_count+=1;
         board.make_move(move);
+        if(board.in_check()){
+            checks_count+=1;
+            special_boards.push_back(board);
+        }
         nodes+=perft_driver(board,depth-1);
         board.undo_move(move);
     }
